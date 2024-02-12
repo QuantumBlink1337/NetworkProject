@@ -1,3 +1,9 @@
+import org.junit.Test;
+
+import java.io.IOException;
+
+import static org.junit.Assert.assertEquals;
+
 // Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
 // then press Enter. You can now see whitespace characters in your code.
 public class Main {
@@ -13,5 +19,12 @@ public class Main {
             // for you, but you can always add more by pressing Ctrl+F8.
             System.out.println("i = " + i);
         }
+    }
+    @Test
+    public void givenGreetingClient_whenServerRespondsWhenStarted_thenCorrect() throws IOException {
+        Client client = new Client();
+        client.startConnection("127.0.0.1", 1060);
+        String response = client.sendMessage("hello server");
+        assertEquals("hello client", response);
     }
 }
