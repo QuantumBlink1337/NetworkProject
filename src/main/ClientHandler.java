@@ -2,10 +2,9 @@ package main;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.Scanner;
 
 public class ClientHandler implements Runnable {
-    private Socket clientSocket;
+    private final Socket clientSocket;
     private final String filepath = "src/resources/users.txt";
 
 
@@ -17,8 +16,8 @@ public class ClientHandler implements Runnable {
         return in;
     }
 
-    private PrintWriter out;
-    private BufferedReader in;
+    private final PrintWriter out;
+    private final BufferedReader in;
     private int ID;
 
     public String getUsername() {
@@ -72,7 +71,7 @@ public class ClientHandler implements Runnable {
             out.println("You are not logged in");
         }
         for (ClientHandler clientHandler : Server.getConnectedClients()) {
-            if (clientHandler.isLoggedin && !clientHandler.username.equals(username)) {
+            if (clientHandler.isLoggedin && !clientHandler.getUsername().equals(username)) {
                 clientHandler.out.println(username + " left the room");
 
             }
