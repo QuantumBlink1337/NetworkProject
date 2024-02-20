@@ -57,7 +57,7 @@ public class Client {
         public void run() {
             while (connected) {
                 try {
-                    if (in.ready()) {
+                    if (connected && in.ready()) {
                         String msg = in.readLine();
                         System.out.println(msg);
                     }
