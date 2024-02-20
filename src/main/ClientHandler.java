@@ -47,7 +47,12 @@ public class ClientHandler implements Runnable {
 
 
                 if (command.equals("login")) {
-                    handleLogin(parsedInput[1], parsedInput[2]);
+                    if (parsedInput.length < 3) {
+                        out.println("Missing password");
+                    }
+                    else {
+                        handleLogin(parsedInput[1], parsedInput[2]);
+                    }
                 }
                 if (command.equals("send")) {
                     handleMessage(inputLine.substring(5));
@@ -56,7 +61,12 @@ public class ClientHandler implements Runnable {
                     logout();
                 }
                 if (command.equals("newuser")) {
-                    handleNewUser(parsedInput[1], parsedInput[2]);
+                    if (parsedInput.length < 3) {
+                        out.println("Missing password");
+                    }
+                    else {
+                        handleNewUser(parsedInput[1], parsedInput[2]);
+                    }
                 }
 
             } catch (IOException e) {
