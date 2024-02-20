@@ -1,9 +1,8 @@
 package main;
 
-import java.io.IOException;
+import java.io.*;
 
-
-public class Main {
+public class Main2 {
     public static void main(String[] args) throws IOException {
         Client client = new Client();
         client.inputLoop();
