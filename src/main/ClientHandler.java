@@ -97,6 +97,11 @@ public class ClientHandler implements Runnable {
                 out.println("Login accepted");
                 username = user;
                 isLoggedin = true;
+                for (ClientHandler clientHandler : Server.getConnectedClients()) {
+                    if (clientHandler.isLoggedin) {
+                        clientHandler.out.println(user + " has joined!");
+                    }
+                }
                 return;
             }
 
