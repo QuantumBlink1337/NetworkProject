@@ -12,7 +12,6 @@ public class Client {
     private PrintWriter out;
     private BufferedReader in;
 
-    private String userID;
     private final Scanner scanner = new Scanner(System.in);
 
     private boolean connected = false;
@@ -23,31 +22,25 @@ public class Client {
                 String msg = scanner.nextLine();
                 String[] parsedInput = msg.split(" ");
                 String command = parsedInput[0];
-                if (command.equals("newuser")) {
-                    if (verifyNewUser(parsedInput[1], parsedInput[2])) {
+                switch (command) {
+                    case "newuser" -> {
+                        if (verifyNewUser(parsedInput[1], parsedInput[2])) {
+                            out.println(msg);
+                        } else {
+                            System.out.println("Invalid new user attempt");
+                        }
+                    }
+                    case "login", "send" -> out.println(msg);
+                    case "logout" -> {
                         out.println(msg);
+                        try {
+                            stopConnection();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        connected = false;
                     }
-                    else {
-                        System.out.println("Invalid new user attempt");
-                    }
-                }
-                else if (command.equals("login")) {
-                    out.println(msg);
-                }
-                else if (command.equals("send")) {
-                    out.println(msg);
-                }
-                else if (command.equals("logout")) {
-                    out.println(msg);
-                    try {
-                        stopConnection();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    connected = false;
-                }
-                else {
-                    System.out.println("Command not recognized");
+                    default -> System.out.println("Command not recognized");
                 }
             }
         }
@@ -69,6 +62,10 @@ public class Client {
             }
         }
     });
+
+    public Client() {
+    }
+
     private boolean verifyNewUser(String userID, String password) {
         return (userID.length() >= 3 && userID.length() <= 32) && (password.length() >= 4 && password.length() <= 8);
     }
@@ -87,7 +84,7 @@ public class Client {
         connected = true;
     }
 
-    public void inputLoop() throws IOException {
+    public void inputLoop() {
         System.out.println("Chatroom Client version 1");
         try {
             startConnection("127.0.0.1", 1060);
