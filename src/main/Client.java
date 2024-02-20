@@ -13,101 +13,89 @@ public class Client {
     private BufferedReader in;
 
     private String userID;
-    private boolean isLoggedIn = false;
+    private final Scanner scanner = new Scanner(System.in);
+
+    private boolean connected = false;
+    private final Thread sendMessage = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            while (connected) {
+                String msg = scanner.nextLine();
+                String[] parsedInput = msg.split(" ");
+                String command = parsedInput[0];
+                if (command.equals("newuser")) {
+                    if (verifyNewUser(parsedInput[1], parsedInput[2])) {
+                        out.println(msg);
+                    }
+                    else {
+                        System.out.println("Invalid new user attempt");
+                    }
+                }
+                else if (command.equals("login")) {
+                    out.println(msg);
+                }
+                else if (command.equals("send")) {
+                    out.println(msg);
+                }
+                else if (command.equals("logout")) {
+                    out.println(msg);
+                    try {
+                        stopConnection();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    connected = false;
+                }
+                else {
+                    System.out.println("Command not recognized");
+                }
+            }
+        }
+    });
+    private final Thread readMessage = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            while (connected) {
+                try {
+                    if (in.ready()) {
+                        String msg = in.readLine();
+                        System.out.println(msg);
+                    }
+
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    });
+    private boolean verifyNewUser(String userID, String password) {
+        return (userID.length() >= 3 && userID.length() <= 32) && (password.length() >= 4 && password.length() <= 8);
+    }
 
     public void startConnection(String ip, int port) throws IOException {
         clientSocket = new Socket(ip, port);
         out = new PrintWriter(clientSocket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        connected = true;
     }
 
     public void inputLoop() throws IOException {
-        Scanner scanner = new Scanner(System.in);
-        String input;
-        boolean validInput = false;
         System.out.println("Chatroom main.Client v. 0.0.1");
         try {
             startConnection("127.0.0.1", 1060);
 
-        }
-        catch (IOException e ) {
-            e.printStackTrace();
-        }
-
-        while (true) {
-            boolean validCommand;
-            boolean validUserID;
-            boolean validPass;
-            if (in.ready()) {
-                System.out.println(in.readLine());
-            }
-            input = scanner.nextLine();
-            String[] parsedInput = input.split(" ");
-            if (parsedInput[0].equals("login")) {
-                isLoggedIn = login(parsedInput[1], parsedInput[2]);
-            }
-            else if (parsedInput[0].equals("send")) {
-                if (isLoggedIn) {
-                    send(input.substring(5));
-                }
-                else {
-                    System.out.println("Not logged in");
-                }
-            }
-
-
-
-
-        }
-    }
-    private void newUser(String userID, String password) {
-
-    }
-
-    private void send(String message) {
-        if (message.length() > 256) {
-            System.out.println("Message too long");
-            return;
-        }
-        try {
-            if (sendMessage("send").equals("Ready")) {
-                String resp = sendMessage(userID + "|" + message);
-
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    private boolean login(String userID, String password) {
-        try {
-            String validation = sendMessage("login");
-            if (validation == null) {
-                throw new IOException();
-            }
-            if (validation.equals("Ready")) {
-                String resp = sendMessage("(" + userID + ", "+password + ")");
-                if (resp.equals("Login accepted")) {
-                    this.userID = userID;
-                    System.out.println("Login confirmed");
-                    return true;
-                }
-
-            }
-
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Denied, login does not match");
-        return false;
+        sendMessage.start();
+        readMessage.start();
+
+
+
+
     }
 
-
-
-    public String sendMessage(String msg) throws IOException {
-        out.println(msg);
-        String resp = in.readLine();
-        return resp;
-    }
 
     public void stopConnection() throws IOException {
         in.close();
