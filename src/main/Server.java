@@ -15,16 +15,14 @@ public class Server {
 
     public void start(int port) throws IOException {
         // https://www.baeldung.com/a-guide-to-java-sockets
-        ServerSocket serverSocket = new ServerSocket(port);
-        while (true) {
-            Socket s = serverSocket.accept();
-
-            ClientHandler client = new ClientHandler(s, connectedClients.size());
-
-            connectedClients.add(client);
-
-            Thread thread = new Thread(client);
-            thread.start();
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            while (true) {
+                Socket s = serverSocket.accept();
+                ClientHandler client = new ClientHandler(s, connectedClients.size());
+                connectedClients.add(client);
+                Thread thread = new Thread(client);
+                thread.start();
+            }
         }
     }
     public static void main(String[] args) throws IOException {
