@@ -6,72 +6,142 @@ import java.util.Scanner;
 
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
+    private final String filepath = "src/resources/users.txt";
+
+
+    public PrintWriter getOut() {
+        return out;
+    }
+
+    public BufferedReader getIn() {
+        return in;
+    }
+
     private PrintWriter out;
     private BufferedReader in;
     private int ID;
-    private boolean isLoggedin;
+
+    public String getUsername() {
+        return username;
+    }
+
+    private String username;
+    private boolean isLoggedin = false;
+    private boolean connected;
 
     public ClientHandler(Socket clientSocket, int ID) throws IOException {
         this.clientSocket = clientSocket;
         this.ID  = ID;
         out = new PrintWriter(clientSocket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        connected = true;
     }
     public void run() {
 
         String inputLine;
-        while (true) {
+        while (connected) {
             try {
                 inputLine = in.readLine();
-                if (inputLine.equals("logout")) {
+                String[] parsedInput = inputLine.split(" ");
+                String command = parsedInput[0];
+
+
+
+                if (command.equals("login")) {
+                    handleLogin(parsedInput[1], parsedInput[2]);
+                }
+                if (command.equals("send")) {
+                    handleMessage(inputLine.substring(5));
+                }
+                if (command.equals("logout")) {
                     logout();
                 }
+                if (command.equals("newuser")) {
+                    handleNewUser(parsedInput[1], parsedInput[2]);
+                }
 
-                if ("login".equals(inputLine)) {
-                    handleLogin();
-                }
-                if ("send".equals(inputLine)) {
-                    handleMessage();
-                }
-                if (".".equals(inputLine)) {
-                    out.println("goodbye");
-                    break;
-                } else {
-                    out.println(inputLine);
-                }
             } catch (IOException e) {
                 e.printStackTrace();
                 break;
             }
         }
+        stop();
     }
     private void logout() throws IOException {
+        if (!isLoggedin) {
+            out.println("You are not logged in");
+        }
+        for (ClientHandler clientHandler : Server.getConnectedClients()) {
+            if (clientHandler.isLoggedin && !clientHandler.username.equals(username)) {
+                clientHandler.out.println(username + " left the room");
+
+            }
+        }
         isLoggedin = false;
-        Server.getConnectedClients().remove(this);
-        clientSocket.close();
+        out.close();
+        in.close();
+        connected = false;
+
+
     }
-    private void handleLogin() throws IOException {
-        out.println("Ready");
-        String userString = in.readLine();
-        String filepath = "src/resources/users.txt";
+    private void handleLogin(String user, String pass) throws IOException {
+
+        if (isLoggedin) {
+            out.println("You are already logged in as " + username);
+            return;
+        }
         final BufferedReader bufferedReader = new BufferedReader(new FileReader(filepath));
+        String login = "(" + user + ", " + pass + ")";
         String line;
         while ((line = bufferedReader.readLine()) != null) {
-            if (line.equals(userString)) {
+            if (line.equals(login)) {
                 out.println("Login accepted");
+                username = user;
+                isLoggedin = true;
+                return;
             }
 
         }
         out.println("Login rejected");
     }
-    private void handleMessage() throws IOException {
-        out.println("Ready");
-        String string = in.readLine();
-        String[] strings = string.split("\\|");
-        System.out.println(strings[0] + ": " + strings[1]);
+    private void handleNewUser(String user, String pass) throws IOException {
+        final BufferedReader bufferedReader = new BufferedReader(new FileReader(filepath));
+        String login = "(" + user + ", " + pass + ")";
+        String line;
+        while ((line = bufferedReader.readLine()) != null) {
+            if (line.contains(user)) {
+                out.println("UserID already exists");
+                return;
+            }
+        }
+        final BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(filepath, true));
+        bufferedWriter.newLine();
+        bufferedWriter.append(login);
+        out.println("Account created successfully");
+        bufferedWriter.flush();
+
+
+    }
+    private void handleMessage(String message) throws IOException {
+        if (!isLoggedin) {
+            out.println("Not logged in");
+            return;
+        }
+        if (message.length() > 256) {
+            out.println("Message received is too long");
+            return;
+        }
+        for (ClientHandler mc : Server.getConnectedClients()) {
+            if (mc.isLoggedin) {
+                mc.out.println(username + ": " + message);
+            }
+
+        }
+
     }
     public void stop() {
         try {
+
             in.close();
             out.close();
             clientSocket.close();
