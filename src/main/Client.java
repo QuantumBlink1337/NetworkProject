@@ -39,6 +39,7 @@ public class Client {
                             throw new RuntimeException(e);
                         }
                         connected = false;
+                        System.out.println("Successfully logged out");
                     }
                     default -> System.out.println("Command not recognized");
                 }
@@ -56,8 +57,8 @@ public class Client {
                     }
 
                 }
-                catch (IOException e) {
-                    e.printStackTrace();
+                catch (IOException ignored) {
+
                 }
             }
         }
