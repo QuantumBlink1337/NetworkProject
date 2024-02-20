@@ -70,12 +70,7 @@ public class ClientHandler implements Runnable {
         if (!isLoggedin) {
             out.println("You are not logged in");
         }
-        for (ClientHandler clientHandler : Server.getConnectedClients()) {
-            if (clientHandler.isLoggedin && !clientHandler.getUsername().equals(username)) {
-                clientHandler.out.println(username + " left the room");
-
-            }
-        }
+        sendMessageToClients(username + " left.");
         isLoggedin = false;
         out.close();
         in.close();
@@ -94,19 +89,15 @@ public class ClientHandler implements Runnable {
         String line;
         while ((line = bufferedReader.readLine()) != null) {
             if (line.equals(login)) {
-                out.println("Login accepted");
+                out.println("Login confirmed");
                 username = user;
                 isLoggedin = true;
-                for (ClientHandler clientHandler : Server.getConnectedClients()) {
-                    if (clientHandler.isLoggedin) {
-                        clientHandler.out.println(user + " has joined!");
-                    }
-                }
+                sendMessageToClients(user + " has logged in.");
                 return;
             }
 
         }
-        out.println("Login rejected");
+        out.println("Denied. Username or password is incorrect.");
     }
     private void handleNewUser(String user, String pass) throws IOException {
         final BufferedReader bufferedReader = new BufferedReader(new FileReader(filepath));
@@ -114,7 +105,7 @@ public class ClientHandler implements Runnable {
         String line;
         while ((line = bufferedReader.readLine()) != null) {
             if (line.contains(user)) {
-                out.println("UserID already exists");
+                out.println("Denied. User account already exists");
                 return;
             }
         }
@@ -122,6 +113,7 @@ public class ClientHandler implements Runnable {
         bufferedWriter.newLine();
         bufferedWriter.append(login);
         out.println("Account created successfully");
+        sendMessageToClients("A new user has created an account.");
         bufferedWriter.flush();
 
 
@@ -135,14 +127,17 @@ public class ClientHandler implements Runnable {
             out.println("Message received is too long");
             return;
         }
-        for (ClientHandler mc : Server.getConnectedClients()) {
-            if (mc.isLoggedin) {
-                mc.out.println(username + ": " + message);
-            }
-
-        }
-
+        sendMessageToClients(username + ": " + message);
     }
+    private void sendMessageToClients(String message) {
+        for (ClientHandler clientHandler : Server.getConnectedClients()) {
+            if (clientHandler.isLoggedin) {
+                clientHandler.out.println(message);
+            }
+        }
+        System.out.println(message);
+    }
+
     public void stop() {
         try {
 
