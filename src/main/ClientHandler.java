@@ -55,7 +55,14 @@ public class ClientHandler implements Runnable {
                     }
                 }
                 if (command.equals("send")) {
-                    handleMessage(inputLine.substring(5));
+                    StringBuilder rebuiltMessage = new StringBuilder();
+                    for (int i = 2; i < parsedInput.length; i++) {
+                        rebuiltMessage.append(parsedInput[i]);
+                        if (i != parsedInput.length - 1) {
+                            rebuiltMessage.append(" ");
+                        }
+                    }
+                    handleMessage(rebuiltMessage.toString(), parsedInput[1]);
                 }
                 if (command.equals("logout")) {
                     logout();
@@ -128,7 +135,7 @@ public class ClientHandler implements Runnable {
 
 
     }
-    private void handleMessage(String message) throws IOException {
+    private void handleMessage(String message, String arg) throws IOException {
         if (!isLoggedin) {
             out.println("Not logged in");
             return;
@@ -137,7 +144,13 @@ public class ClientHandler implements Runnable {
             out.println("Message received is too long");
             return;
         }
-        sendMessageToClients(username + ": " + message);
+        if (arg.equalsIgnoreCase("all")) {
+            sendMessageToClients(username + ": " + message);
+        }
+        else {
+            sendMessageToSpecificClient(message, arg);
+        }
+
     }
     private void sendMessageToClients(String message) {
         for (ClientHandler clientHandler : Server.getConnectedClients()) {
@@ -146,6 +159,21 @@ public class ClientHandler implements Runnable {
             }
         }
         System.out.println(message);
+    }
+    private void sendMessageToSpecificClient(String message, String userID) {
+        boolean sent = false;
+        for (ClientHandler clientHandler : Server.getConnectedClients()) {
+            if (clientHandler.isLoggedin && clientHandler.username.equals(userID)) {
+                clientHandler.out.println(username + " sent you a DM: " + message);
+                sent = true;
+            }
+        }
+        if (!sent) {
+            out.println("Could not find a user by that username connected");
+        }
+        else {
+            System.out.println(username + " to " + userID + ": " + message);
+        }
     }
 
     public void stop() {

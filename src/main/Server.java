@@ -41,8 +41,8 @@ public class Server {
 
 
     }
-    public static void main(String[] args) throws IOException {
-        System.out.println("Horrible chatroom server version 1");
+    public static void main(String[] args) {
+        System.out.println("Horrible chatroom server version 2");
         Server server = new Server();
         server.start(1060, 10);
     }

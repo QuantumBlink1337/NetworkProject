@@ -86,7 +86,7 @@ public class Client {
     }
 
     public void inputLoop() {
-        System.out.println("Chatroom Client version 1");
+        System.out.println("Chatroom Client version 2");
         try {
             startConnection("127.0.0.1", 1060);
 
