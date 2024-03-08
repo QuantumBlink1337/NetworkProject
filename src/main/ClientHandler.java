@@ -2,59 +2,57 @@ package main;
 
 import java.io.*;
 import java.net.Socket;
+/*
+    ClientHandler Class
+        Responsible for receiving client commands and translating them to executable statements.
+    Matt Marlow
+    Spring 2024
+ */
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final String filepath = "src/resources/users.txt";
 
 
-    public PrintWriter getOut() {
-        return out;
-    }
 
-    public BufferedReader getIn() {
-        return in;
-    }
 
     private final PrintWriter out;
     private final BufferedReader in;
-    private int ID;
-
-    public String getUsername() {
-        return username;
-    }
-
     private String username;
     private boolean isLoggedin = false;
     private boolean connected;
 
-    public ClientHandler(Socket clientSocket, int ID) throws IOException {
+    public ClientHandler(Socket clientSocket) throws IOException {
         this.clientSocket = clientSocket;
-        this.ID  = ID;
         out = new PrintWriter(clientSocket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         connected = true;
     }
-    public void run() {
 
+    /*
+        Generalized loop for receiving commands.
+     */
+    public void run() {
         String inputLine;
         while (connected) {
             try {
+                // We need to do the following here - receive the line, and break each portion into the command and the message.
+                // We can assume that index 0 of the tokenized message is the client command.
                 inputLine = in.readLine();
                 String[] parsedInput = inputLine.split(" ");
                 String command = parsedInput[0];
-
-
-
                 if (command.equals("login")) {
                     if (parsedInput.length < 3) {
                         out.println("Missing password");
                     }
                     else {
+                        // 1 and 2 should be the username and password.
                         handleLogin(parsedInput[1], parsedInput[2]);
                     }
                 }
                 if (command.equals("send")) {
+                    // Since we tokenize the string by space, we'll need to reconstruct the message since a standard message can always have spaces.
+                    // We can assume that index 2 will make up the message since 0 and 1 are reserved for commands.
                     StringBuilder rebuiltMessage = new StringBuilder();
                     for (int i = 2; i < parsedInput.length; i++) {
                         rebuiltMessage.append(parsedInput[i]);
@@ -68,12 +66,16 @@ public class ClientHandler implements Runnable {
                     logout();
                 }
                 if (command.equals("newuser")) {
+                    // If the parsed statement is less than three, we're missing some args.
                     if (parsedInput.length < 3) {
                         out.println("Missing password");
                     }
                     else {
                         handleNewUser(parsedInput[1], parsedInput[2]);
                     }
+                }
+                if (command.equals("who")) {
+                    displayConnectedUsers();
                 }
 
             } catch (IOException e) {
@@ -83,6 +85,7 @@ public class ClientHandler implements Runnable {
         }
         stop();
     }
+    // Safely closes all resources.
     private void logout() throws IOException {
         if (!isLoggedin) {
             out.println("You are not logged in");
@@ -96,11 +99,18 @@ public class ClientHandler implements Runnable {
 
     }
     private void handleLogin(String user, String pass) throws IOException {
-
+        // Boilerplate checks.
         if (isLoggedin) {
             out.println("You are already logged in as " + username);
             return;
         }
+        for (ClientHandler clientHandler : Server.getConnectedClients()) {
+            if (clientHandler.isLoggedin && clientHandler.username.equals(user)) {
+                out.println("A user is already logged in with that username");
+                return;
+            }
+        }
+        // Open a reader to see if the login info is actually there.
         final BufferedReader bufferedReader = new BufferedReader(new FileReader(filepath));
         String login = "(" + user + ", " + pass + ")";
         String line;
@@ -110,18 +120,24 @@ public class ClientHandler implements Runnable {
                 username = user;
                 isLoggedin = true;
                 sendMessageToClients(user + " has logged in.");
+                bufferedReader.close();
                 return;
             }
 
         }
+        bufferedReader.close();
+        // We didn't find the login.
         out.println("Denied. Username or password is incorrect.");
     }
     private void handleNewUser(String user, String pass) throws IOException {
+
+        // Look for a preexisting user account. Careful not to reveal password info, so we just check if the user is the same.
         final BufferedReader bufferedReader = new BufferedReader(new FileReader(filepath));
         String login = "(" + user + ", " + pass + ")";
         String line;
         while ((line = bufferedReader.readLine()) != null) {
             if (line.contains(user)) {
+                bufferedReader.close();
                 out.println("Denied. User account already exists");
                 return;
             }
@@ -132,6 +148,8 @@ public class ClientHandler implements Runnable {
         out.println("Account created successfully");
         sendMessageToClients("A new user has created an account.");
         bufferedWriter.flush();
+        bufferedWriter.close();
+        bufferedReader.close();
 
 
     }
@@ -151,6 +169,20 @@ public class ClientHandler implements Runnable {
             sendMessageToSpecificClient(message, arg);
         }
 
+    }
+    private void displayConnectedUsers() {
+        int i = 0;
+        String comma;
+        // We'll build our message versus sending it out for each client.
+        StringBuilder message = new StringBuilder();
+        for (ClientHandler clientHandler : Server.getConnectedClients()) {
+            if (clientHandler.isLoggedin) {
+                comma = i == Server.getConnectedClients().size() - 1 ? "" : ", ";
+                message.append(clientHandler.username).append(comma);
+            }
+            i++;
+        }
+        out.println(message);
     }
     private void sendMessageToClients(String message) {
         for (ClientHandler clientHandler : Server.getConnectedClients()) {
@@ -175,6 +207,7 @@ public class ClientHandler implements Runnable {
             System.out.println(username + " to " + userID + ": " + message);
         }
     }
+    // Close resources when the client disconnects.
 
     public void stop() {
         try {

@@ -15,6 +15,11 @@ public class Client {
     private final Scanner scanner = new Scanner(System.in);
 
     private boolean connected = false;
+
+
+    /*
+        We will open two threads for receiving and sending messages.
+     */
     private final Thread sendMessage = new Thread(new Runnable() {
         @Override
         public void run() {
@@ -23,6 +28,7 @@ public class Client {
                 String[] parsedInput = msg.split(" ");
                 String command = parsedInput[0];
                 switch (command) {
+                    // Verify the new user args before sending them to the server.
                     case "newuser" -> {
                         if (verifyNewUser(parsedInput[1], parsedInput[2])) {
                             out.println(msg);
@@ -30,7 +36,8 @@ public class Client {
                             System.out.println("Invalid new user attempt");
                         }
                     }
-                    case "login", "send" -> out.println(msg);
+                    // Server will handle the commands itself.
+                    case "login", "send", "who" -> out.println(msg);
                     case "logout" -> {
                         out.println(msg);
                         try {
@@ -51,7 +58,8 @@ public class Client {
         public void run() {
             while (connected) {
                 try {
-                    if (connected && in.ready()) {
+                    // If a message is on in, print it.
+                    if (in.ready()) {
                         String msg = in.readLine();
                         System.out.println(msg);
                     }
@@ -66,7 +74,6 @@ public class Client {
 
     public Client() {
     }
-
     private boolean verifyNewUser(String userID, String password) {
         return (userID.length() >= 3 && userID.length() <= 32) && (password.length() >= 4 && password.length() <= 8);
     }
@@ -95,13 +102,7 @@ public class Client {
         }
         sendMessage.start();
         readMessage.start();
-
-
-
-
     }
-
-
     public void stopConnection() throws IOException {
         in.close();
         out.close();
